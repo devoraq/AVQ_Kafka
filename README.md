@@ -19,31 +19,40 @@
 ## Быстрый старт
 
 ```bash
-cd kafka
-docker compose up -d                # поднимает брокер и schema registry
-scripts/install_terraform.sh        # при необходимости ставит Terraform и применяет dev-конфиг
-scripts/create-topic-with-dlq.sh orders   # создаёт тему orders и её DLQ
+cd kafk
+docker compose up -d                # поднимает брокер и schema registry
+scripts/install_terraform.sh        # при необходимости ставит Terraform и применяет dev-конфиг
 ```
 
 ### Проверка
 
 ```bash
-docker compose ps                   # статус контейнеров
-docker logs kafka --tail 20         # убедиться, что брокер запустился
+docker compose ps                   # статус контейнеров
+docker logs kafka --tail 20         # убедиться, что брокер запустился
 docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server localhost:9092 --list
+  --bootstrap-server localhost:9092 --list
 ```
 
 ## Управление топиками
 
-- `scripts/create-topic-with-dlq.sh <topic> [bootstrap]` — создаёт тему и `<topic>.dlq` с dev-конфигом.
+- Создать топик можно командой:
+
+```shell
+docker exec -it <CONTAINER_ID> bash -c "/opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:9092 \
+  --create \
+  --topic test \
+  --partitions 1 \
+  --replication-factor 1"
+```
+
 - В Terraform (`deployments/terraform/dev`) можно описать нужный набор тем и применить `terraform apply`.
 
 ## Остановка и очистка
 
 ```bash
-docker compose down                 # остановить сервисы
-docker compose down -v              # дополнительно удалить volume kafka-data
+docker compose down                 # остановить сервисы
+docker compose down -v              # дополнительно удалить volume kafka-data
 ```
 
 ## Дополнительно
