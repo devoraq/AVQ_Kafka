@@ -19,7 +19,7 @@
 ## Быстрый старт
 
 ```bash
-cd kafk
+cd kafka
 docker compose up -d                # поднимает брокер и schema registry
 scripts/install_terraform.sh        # при необходимости ставит Terraform и применяет dev-конфиг
 ```
