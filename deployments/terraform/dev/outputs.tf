@@ -1,4 +1,5 @@
-output "topic_name" {
-  description = "Kafka topic managed by this Terraform stack."
-  value       = kafka_topic.dev.name
+# Возвращаем список имён топиков, созданных этим стэком
+output "topic_names" {
+  description = "Kafka topics managed by this Terraform stack."
+  value       = [for topic in kafka_topic.dev : topic.name]
 }

@@ -1,3 +1,4 @@
+// Определяем версии Terraform и провайдера Kafka
 terraform {
   required_version = ">= 1.5.0"
 
@@ -9,6 +10,7 @@ terraform {
   }
 }
 
+// Провайдер Kafka с поддержкой аутентификации (если задана)
 provider "kafka" {
   bootstrap_servers = var.kafka_bootstrap_servers
   tls_enabled       = false
@@ -18,6 +20,7 @@ provider "kafka" {
   sasl_mechanism    = trimspace(var.kafka_sasl_mechanism) != "" ? var.kafka_sasl_mechanism : null
 }
 
+// Общие настройки топиков, которые применяются ко всем создаваемым темам
 locals {
   topic_config = merge(
     {
@@ -29,8 +32,10 @@ locals {
   )
 }
 
+// Создаём по одному ресурсу kafka_topic на каждое имя из topic_names
 resource "kafka_topic" "dev" {
-  name               = var.topic_name
+  for_each           = var.topic_names
+  name               = each.value
   replication_factor = var.replication_factor
   partitions         = var.topic_partitions
 
