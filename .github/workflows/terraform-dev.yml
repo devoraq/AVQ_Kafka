@@ -1,0 +1,39 @@
+name: Terraform Dev
+
+on:
+  push:
+    paths:
+      - ".github/workflows/terraform-dev.yml"
+      - "deployments/terraform/dev/**"
+  pull_request:
+    paths:
+      - ".github/workflows/terraform-dev.yml"
+      - "deployments/terraform/dev/**"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deployments/terraform/dev
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Terraform fmt
+        run: terraform fmt -check -recursive
+
+      - name: Terraform init
+        run: terraform init -input=false
+
+      - name: Terraform validate
+        run: terraform validate -no-color
+
+      - name: Terraform plan
+        run: terraform plan -input=false -lock=false

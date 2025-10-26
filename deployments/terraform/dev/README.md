@@ -33,3 +33,7 @@ topic_names = [
 ```
 
 Override any variable via `-var` or a `terraform.tfvars` file if needed.
+
+## CI
+
+GitHub Actions запускает `terraform fmt`, `init`, `validate` и `plan` для директории `deployments/terraform/dev` на каждом push/pull request, затрагивающем конфигурацию. Файл workflow: `.github/workflows/terraform-dev.yml`.
