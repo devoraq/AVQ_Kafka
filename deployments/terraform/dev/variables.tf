@@ -1,60 +1,86 @@
-# Список адресов брокеров Kafka, к которым подключается Terraform
 variable "kafka_bootstrap_servers" {
   type        = list(string)
   description = "List of Kafka bootstrap servers; defaults align with docker-compose dev environment."
   default     = ["localhost:9092"]
 }
 
-# Список Kafka-топиков, которые Terraform создаёт в dev-окружении
-variable "topic_names" {
-  type        = set(string)
-  description = "Kafka topic names managed for the dev environment."
-  default     = ["test-topic"]
+variable "topic_definitions" {
+  type = map(object({
+    partitions     = number
+    retention_days = number
+    cleanup_policy = optional(string)
+    extra_config   = optional(map(string), {})
+  }))
+
+  description = <<-EOT
+  Kafka topics managed for the dev environment with per-topic overrides.
+  - partitions: desired partition count (per environment overrideable).
+  - retention_days: log retention in days (converted to retention.ms).
+  - cleanup_policy: optional per-topic cleanup policy override.
+  - extra_config: optional map of additional per-topic configs.
+  EOT
+
+  default = {
+    "chat.presence.events" = {
+      partitions     = 3
+      retention_days = 1
+    }
+    "chat.message.events" = {
+      partitions     = 6
+      retention_days = 7
+    }
+  }
+
+  validation {
+    condition = alltrue([
+      for topic_name, topic in var.topic_definitions : (
+        topic.partitions >= 1 &&
+        topic.retention_days >= 1 &&
+        (
+          topic_name != "chat.presence.events" ||
+          (topic.partitions >= 3 && topic.partitions <= 6 && topic.retention_days >= 1 && topic.retention_days <= 7)
+        ) &&
+        (
+          topic_name != "chat.message.events" ||
+          (topic.partitions >= 6 && topic.partitions <= 12 && topic.retention_days >= 7 && topic.retention_days <= 30)
+        )
+      )
+    ])
+
+    error_message = "Topic definitions must respect documented partition and retention day ranges."
+  }
 }
 
-# Количество партиций на каждый создаваемый топик
-variable "topic_partitions" {
-  type        = number
-  description = "Number of partitions for the dev topic (aligns with KAFKA_NUM_PARTITIONS)."
-  default     = 3
-}
-
-# Фактор репликации (в dev стоит 1, потому что один брокер)
 variable "replication_factor" {
   type        = number
   description = "Replication factor for the dev topic (single broker by default)."
   default     = 1
 }
 
-# Базовая политика очистки логов топика
 variable "topic_cleanup_policy" {
   type        = string
   description = "Cleanup policy for the dev topic (delete or compact)."
   default     = "delete"
 }
 
-# Минимальное количество реплик, которые должны подтвердить запись
 variable "topic_min_insync_replicas" {
   type        = number
   description = "Minimum in-sync replicas required for producer acks."
   default     = 1
 }
 
-# Размер сегмента логов (байт)
 variable "topic_segment_bytes" {
   type        = number
   description = "Segment file size threshold in bytes."
   default     = 104857600
 }
 
-# Дополнительные кастомные настройки топика
 variable "extra_topic_config" {
   type        = map(string)
   description = "Additional topic-level configuration overrides."
   default     = {}
 }
 
-# Настройки SASL для подключения к защищённым кластерам (по умолчанию пустые)
 variable "kafka_sasl_username" {
   type        = string
   description = "Optional SASL username for secured clusters."
@@ -62,7 +88,6 @@ variable "kafka_sasl_username" {
   nullable    = false
 }
 
-# Пароль для SASL-аутентификации (если требуется)
 variable "kafka_sasl_password" {
   type        = string
   description = "Optional SASL password for secured clusters."
@@ -71,7 +96,6 @@ variable "kafka_sasl_password" {
   sensitive   = true
 }
 
-# Используемый SASL-механизм (например, PLAIN)
 variable "kafka_sasl_mechanism" {
   type        = string
   description = "Optional SASL mechanism (e.g., PLAIN)."

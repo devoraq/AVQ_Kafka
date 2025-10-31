@@ -1,61 +1,62 @@
 # Kafka Stack
 
-Локальная инфраструктура Kafka собрана в отдельном модуле, чтобы сервисы проекта подключались к единому брокеру и схеме Terraform/DevOps.
+Локальный стенд Kafka с минимальными зависимостями для разработки и тестирования интеграций. Репозиторий объединяет Docker Compose, конфигурацию брокера, Terraform-инфраструктуру и вспомогательные скрипты.
 
-## Состав директории
-
-- `docker-compose.yaml` — стек из одноброкерной Kafka (режим KRaft, `apache/kafka:4.0.1`) и Confluent Schema Registry.
-- `config/` — переменные окружения для брокера (см. `config/kafka.env`).
-- `deployments/terraform/` — Terraform-конфигурация для создания dev-тем.
-- `scripts/` — утилиты для установки Terraform и управления топиками.
-- `docs/` — справочные материалы и best practices (`docs/cluster.md`).
+## Структура репозитория
+- `docker-compose.yaml` — одновременный запуск Kafka (режим KRaft, образ `apache/kafka:4.0.1`) и Confluent Schema Registry.
+- `config/` — примерные переменные окружения и конфиги запуска (`config/kafka.env` и др.).
+- `deployments/terraform/` — Terraform-код, управляющий dev-темами.
+- `scripts/` — утилиты для установки Terraform и работы с топиками.
+- `docs/` — подробные заметки по параметрам кластера и best practices (`docs/cluster.md`).
 
 ## Требования
-
-- Docker & Docker Compose (v2).
-- Terraform ≥ 1.5 (ставится автоматически скриптом).
-- Порты `9092` (Kafka) и `8081` (Schema Registry) не должны быть заняты.
+- Docker и Docker Compose v2.
+- Terraform версии не ниже 1.5 (для Terraform-кода в `deployments/terraform/dev`).
+- Свободные порты `9092` (Kafka) и `8081` (Schema Registry) на локальной машине.
 
 ## Быстрый старт
-
 ```bash
-cd kafka
-docker compose up -d                # поднимает брокер и schema registry
-scripts/install_terraform.sh        # при необходимости ставит Terraform и применяет dev-конфиг
+docker compose up -d          # запускаем Kafka и Schema Registry
+scripts/install_terraform.sh  # устанавливаем Terraform (один раз)
 ```
 
-### Проверка
-
+### Проверка состояния
 ```bash
-docker compose ps                   # статус контейнеров
-docker logs kafka --tail 20         # убедиться, что брокер запустился
+docker compose ps                 # список контейнеров
+docker logs kafka --tail 20       # последние строки лога брокера
 docker exec kafka /opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server localhost:9092 --list
+  --bootstrap-server localhost:9092 --list
 ```
 
-## Управление топиками
+## Управление темами
+- Вручную: используйте `kafka-topics.sh` внутри контейнера, например:
+  ```bash
+  docker exec -it kafka /opt/kafka/bin/kafka-topics.sh \
+    --bootstrap-server localhost:9092 \
+    --create \
+    --topic demo \
+    --partitions 3 \
+    --replication-factor 1
+  ```
+- Инфраструктурно: в `deployments/terraform/dev` описана карта `topic_definitions`. Каждая запись задаёт количество партиций и окно хранения; при выполнении `terraform apply` темы создаются или обновляются автоматически.
 
-- Создать топик можно командой:
-
-```shell
-docker exec -it <CONTAINER_ID> bash -c "/opt/kafka/bin/kafka-topics.sh \
-  --bootstrap-server localhost:9092 \
-  --create \
-  --topic test \
-  --partitions 1 \
-  --replication-factor 1"
+```bash
+cd deployments/terraform/dev
+terraform init
+terraform plan   # проверяем изменения
+terraform apply
 ```
 
-- В Terraform (`deployments/terraform/dev`) можно описать нужный набор тем и применить `terraform apply`.
+По умолчанию настроены две темы:
+- `chat.presence.events` — 3 партиции, хранение 1 день (разрешён диапазон 3–6 партиций и 1–7 дней).
+- `chat.message.events` — 6 партиций, хранение 7 дней (разрешён диапазон 6–12 партиций и 7–30 дней).
 
 ## Остановка и очистка
-
 ```bash
-docker compose down                 # остановить сервисы
-docker compose down -v              # дополнительно удалить volume kafka-data
+docker compose down         # остановка контейнеров
+docker compose down -v      # плюс удаление volume `kafka-data`
 ```
 
-## Дополнительно
-
-- Подробные настройки брокера и рекомендации для продюсеров/консьюмеров описаны в `docs/cluster.md`.
-- Переменные окружения можно менять через `.env` или правкой `config/kafka.env`.
+## Дополнительные материалы
+- Подробный чек-лист параметров брокера и клиентов: `docs/cluster.md`.
+- Переменные окружения для локальной разработки: файл `config/kafka.env`.
