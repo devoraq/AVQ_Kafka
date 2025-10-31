@@ -1,1 +1,14 @@
+# CLI logs
 mcp-shell.log
+
+# Terraform state artifacts
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+
+# IDE / OS noise
+.DS_Store
+Thumbs.db
