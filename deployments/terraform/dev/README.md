@@ -12,10 +12,11 @@
   - `partitions` — требуемое число партиций;
   - `retention_days` — окно хранения в сутках (конвертируется в `retention.ms`);
   - `cleanup_policy` — необязательная замена глобальному `topic_cleanup_policy`;
-  - `extra_config` — произвольные дополнительные настройки для конкретной темы.
+  - `extra_config` — произвольные дополнительные настройки для конкретной темы;
+  - `group` — логическая группа (по умолчанию `chat` для встроенных тем).
 - Остальные переменные наследуются от базовой конфигурации (`replication_factor`, `topic_min_insync_replicas`, `extra_topic_config` и т. д.).
 
-По умолчанию описаны три топика с валидацией диапазонов:
+По умолчанию описаны три топика в группе `chat` с валидацией диапазонов:
 - `chat.presence.events`: 3–6 партиций, хранение 1–7 дней (стартовое значение 3/1).
 - `chat.message.acks`: 6–12 партиций, хранение 7–30 дней (стартовое значение 6/7).
 - `chat.message.events`: 6–12 партиций, хранение 7–30 дней (стартовое значение 6/7).
@@ -36,6 +37,7 @@ topic_definitions = {
   "chat.message.events" = {
     partitions     = 8
     retention_days = 14
+    group          = "chat"
   }
   "chat.message.events.dlq" = {
     partitions     = 6

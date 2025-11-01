@@ -27,7 +27,7 @@ locals {
 }
 
 resource "kafka_topic" "dev" {
-  for_each           = var.topic_definitions
+  for_each           = local.effective_topic_definitions
   name               = each.key
   replication_factor = var.replication_factor
   partitions         = each.value.partitions

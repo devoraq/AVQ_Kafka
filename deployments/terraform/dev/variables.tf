@@ -4,12 +4,49 @@ variable "kafka_bootstrap_servers" {
   default     = ["localhost:9092"]
 }
 
+locals {
+  default_chat_topic_group = {
+    "chat.presence.events" = {
+      partitions     = 3
+      retention_days = 1
+      group          = "chat"
+      cleanup_policy = null
+      extra_config   = {}
+    }
+    "chat.message.acks" = {
+      partitions     = 6
+      retention_days = 7
+      group          = "chat"
+      cleanup_policy = null
+      extra_config   = {}
+    }
+    "chat.message.events" = {
+      partitions     = 6
+      retention_days = 7
+      group          = "chat"
+      cleanup_policy = null
+      extra_config   = {}
+    }
+  }
+
+  default_topic_groups = {
+    chat = local.default_chat_topic_group
+  }
+
+  default_topic_definitions = merge([
+    for _, topics in local.default_topic_groups : topics
+  ]...)
+
+  effective_topic_definitions = coalesce(var.topic_definitions, local.default_topic_definitions)
+}
+
 variable "topic_definitions" {
   type = map(object({
     partitions     = number
     retention_days = number
     cleanup_policy = optional(string)
     extra_config   = optional(map(string), {})
+    group          = optional(string)
   }))
 
   description = <<-EOT
@@ -18,25 +55,14 @@ variable "topic_definitions" {
   - retention_days: log retention in days (converted to retention.ms).
   - cleanup_policy: optional per-topic cleanup policy override.
   - extra_config: optional map of additional per-topic configs.
+  - group: optional logical grouping label; defaults to "chat" for bundled topics.
   EOT
 
-  default = {
-    "chat.presence.events" = {
-      partitions     = 3
-      retention_days = 1
-    }
-    "chat.message.acks" = {
-      partitions     = 6
-      retention_days = 7
-    }
-    "chat.message.events" = {
-      partitions     = 6
-      retention_days = 7
-    }
-  }
+  default  = null
+  nullable = true
 
   validation {
-    condition = alltrue([
+    condition = var.topic_definitions == null || alltrue([
       for topic_name, topic in var.topic_definitions : (
         topic.partitions >= 1 &&
         topic.retention_days >= 1 &&
