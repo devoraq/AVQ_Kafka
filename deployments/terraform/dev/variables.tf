@@ -25,6 +25,10 @@ variable "topic_definitions" {
       partitions     = 3
       retention_days = 1
     }
+    "chat.message.acks" = {
+      partitions     = 6
+      retention_days = 7
+    }
     "chat.message.events" = {
       partitions     = 6
       retention_days = 7
@@ -42,6 +46,10 @@ variable "topic_definitions" {
         ) &&
         (
           topic_name != "chat.message.events" ||
+          (topic.partitions >= 6 && topic.partitions <= 12 && topic.retention_days >= 7 && topic.retention_days <= 30)
+        ) &&
+        (
+          topic_name != "chat.message.acks" ||
           (topic.partitions >= 6 && topic.partitions <= 12 && topic.retention_days >= 7 && topic.retention_days <= 30)
         )
       )
